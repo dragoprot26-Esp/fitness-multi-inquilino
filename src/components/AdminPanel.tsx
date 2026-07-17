@@ -59,6 +59,18 @@ const DEFAULT_PREDEFINED_TRACKS: MusicTrack[] = [
   { id: 'def-5', name: 'Spinning Power 🔥', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3', isPredefined: true }
 ];
 
+const driveDirecto = (url: string): string => {
+  if (!url) return url;
+  const m = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?id=|uc\?export=\w+&id=)([A-Za-z0-9_-]+)/);
+  return m ? `https://drive.google.com/uc?export=download&id=${m[1]}` : url;
+};
+
+const ytIdDe = (url: string): string | null => {
+  if (!url) return null;
+  const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  return m ? m[1] : null;
+};
+
 export default function AdminPanel() {
   const {
     activeTenant,
@@ -253,7 +265,7 @@ export default function AdminPanel() {
       if (adminPlayingTrackId) {
         const playlist = activeTenant.customBgMusicPlaylist || DEFAULT_PREDEFINED_TRACKS;
         const track = playlist.find(t => t.id === adminPlayingTrackId);
-        if (track) {
+        if (track && !ytIdDe(track.url)) {
           adminAudioRef.current.src = track.url;
           adminAudioRef.current.load();
           adminAudioRef.current.play().catch(err => {
@@ -497,7 +509,7 @@ export default function AdminPanel() {
     const newTrack: MusicTrack = {
       id: 'url-' + Date.now() + '-' + Math.round(Math.random() * 1000),
       name: trackName,
-      url: musicCustomUrl.trim(),
+      url: driveDirecto(musicCustomUrl.trim()),
       isPredefined: false
     };
 
@@ -2903,16 +2915,21 @@ export default function AdminPanel() {
 
                   <div>
                     <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">
-                      URL del archivo de audio (.mp3)
+                      Enlace de música (YouTube · .mp3 · Google Drive)
                     </label>
                     <input
                       type="url"
                       required
-                      placeholder="Ej. https://miservidor.com/audio.mp3"
+                      placeholder="Pegá el link de YouTube, un .mp3 o de Google Drive"
                       value={musicCustomUrl}
                       onChange={(e) => setMusicCustomUrl(e.target.value)}
                       className="w-full bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 px-3 py-2 text-xs rounded-xl focus:outline-none text-stone-900 dark:text-zinc-100 font-mono"
                     />
+                    <div className="mt-2 text-[10px] text-stone-500 dark:text-zinc-400 leading-relaxed bg-stone-100 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 rounded-lg p-2 space-y-1">
+                      <p>🎵 <b>YouTube:</b> pegá el link del video (youtube.com o youtu.be).</p>
+                      <p>🎧 <b>MP3 directo:</b> un enlace que termine en <code>.mp3</code>.</p>
+                      <p>📁 <b>Google Drive:</b> subí la canción a tu Drive, compartila como <b>"Cualquiera con el enlace"</b> y pegá el link acá (se convierte solo).</p>
+                    </div>
                   </div>
 
                   <button
@@ -2929,6 +2946,19 @@ export default function AdminPanel() {
 
           {/* Hidden Preview Audio Element */}
           <audio ref={adminAudioRef} loop />
+          {(() => {
+            const pl = activeTenant.customBgMusicPlaylist || DEFAULT_PREDEFINED_TRACKS;
+            const tr = pl.find(t => t.id === adminPlayingTrackId);
+            const yid = tr ? ytIdDe(tr.url) : null;
+            return yid ? (
+              <iframe
+                title="Preview YouTube"
+                src={`https://www.youtube.com/embed/${yid}?autoplay=1&loop=1&playlist=${yid}&controls=0&playsinline=1`}
+                allow="autoplay"
+                style={{ position: 'fixed', width: 1, height: 1, left: -9999, bottom: 0, border: 0 }}
+              />
+            ) : null;
+          })()}
         </div>
       )}
 
