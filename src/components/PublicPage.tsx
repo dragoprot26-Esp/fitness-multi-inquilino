@@ -181,6 +181,8 @@ export default function PublicPage() {
   // Background music player states and ref
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
+  const ytId = (() => { const u = activeTenant.customBgMusicUrl || ''; const m = u.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/); return m ? m[1] : null; })();
+  const esYT = !!ytId;
 
   // Sync background music when tenant changes or customBgMusicUrl changes
   React.useEffect(() => {
@@ -196,6 +198,7 @@ export default function PublicPage() {
   }, [activeTenant.customBgMusicUrl]);
 
   const toggleMusic = () => {
+    if (esYT) { setIsMusicPlaying(p => !p); return; }
     if (!audioRef.current) return;
     if (isMusicPlaying) {
       audioRef.current.pause();
@@ -1354,7 +1357,15 @@ export default function PublicPage() {
         </div>
       )}
 
-      {activeTenant.customBgMusicUrl && (
+      {esYT && isMusicPlaying && (
+        <iframe
+          title="Música de fondo"
+          src={`https://www.youtube.com/embed/${ytId}?autoplay=1&loop=1&playlist=${ytId}&controls=0&modestbranding=1&playsinline=1`}
+          allow="autoplay"
+          style={{ position: 'fixed', width: 1, height: 1, left: -9999, bottom: 0, border: 0 }}
+        />
+      )}
+      {!esYT && activeTenant.customBgMusicUrl && (
         <audio
           ref={audioRef}
           src={activeTenant.customBgMusicUrl}
