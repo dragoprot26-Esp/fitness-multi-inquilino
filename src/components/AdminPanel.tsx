@@ -119,6 +119,8 @@ export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'payments' | 'classes' | 'prospects' | 'suggestions' | 'notifs' | 'config' | 'clients' | 'gallery' | 'theme' | 'music'>('dashboard');
 
   // Custom visual theme customizer states
+  const [editName, setEditName] = useState(activeTenant.name);
+  const [editSlogan, setEditSlogan] = useState(activeTenant.slogan || '');
   const [editHeroImage, setEditHeroImage] = useState(activeTenant.customHeroImage || '');
   const [editFontHeading, setEditFontHeading] = useState(activeTenant.customFontHeading || 'Space Grotesk');
   const [editFontBody, setEditFontBody] = useState(activeTenant.customFontBody || 'Inter');
@@ -243,6 +245,8 @@ export default function AdminPanel() {
     setEditLanguage(activeTenant.language || 'es');
     setEditCurrencySymbol(activeTenant.currencySymbol || '€');
     setEditEnableOnlinePayments(activeTenant.enableOnlinePayments !== false);
+    setEditName(activeTenant.name);
+    setEditSlogan(activeTenant.slogan || '');
     setEditHeroImage(activeTenant.customHeroImage || '');
     setEditFontHeading(activeTenant.customFontHeading || 'Space Grotesk');
     setEditFontBody(activeTenant.customFontBody || 'Inter');
@@ -640,6 +644,8 @@ export default function AdminPanel() {
   const handleSaveTheme = (e: React.FormEvent) => {
     e.preventDefault();
     updateTenantSettings({
+      name: editName.trim() || activeTenant.name,
+      slogan: editSlogan,
       customHeroImage: editHeroImage,
       customFontHeading: editFontHeading,
       customFontBody: editFontBody,
@@ -1520,6 +1526,20 @@ export default function AdminPanel() {
                     </div>
                   </div>
 
+                  {/* Identidad: nombre y eslogan del estudio */}
+                  <div className="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-stone-200/50 dark:border-zinc-800 space-y-3">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-stone-800 dark:text-zinc-200">✏️ Nombre y Eslogan del Estudio</h4>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">Nombre del estudio (título grande del inicio)</label>
+                      <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Ej. Ritmo & Zumba Studio" className="w-full bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 px-3 py-2 text-sm rounded-xl focus:outline-none text-stone-900 dark:text-zinc-100" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">Eslogan (frase debajo del título)</label>
+                      <input type="text" value={editSlogan} onChange={(e) => setEditSlogan(e.target.value)} placeholder="Ej. ¡Siente la música, vive la energía!" className="w-full bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 px-3 py-2 text-xs rounded-xl focus:outline-none text-stone-900 dark:text-zinc-100" />
+                    </div>
+                    <p className="text-[10px] text-stone-400">Se guarda con el botón "Guardar" de esta pestaña.</p>
+                  </div>
+
                   {/* Fonts visual preview box */}
                   <div className="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-stone-200/50 dark:border-zinc-800 text-center">
                     <p className="text-[9px] font-mono text-stone-400 mb-2 uppercase">Vista previa de tipografía combinada</p>
@@ -1527,13 +1547,13 @@ export default function AdminPanel() {
                       className="text-xl font-black text-stone-900 dark:text-white"
                       style={{ fontFamily: `'${editFontHeading}', sans-serif` }}
                     >
-                      {activeTenant.name}
+                      {editName || activeTenant.name}
                     </h5>
                     <p 
                       className="text-xs text-stone-500 mt-1"
                       style={{ fontFamily: `'${editFontBody}', sans-serif` }}
                     >
-                      {activeTenant.slogan || '¡Ven a entrenar con nosotros y transforma tu cuerpo y mente hoy mismo!'}
+                      {editSlogan || activeTenant.slogan || '¡Ven a entrenar con nosotros y transforma tu cuerpo y mente hoy mismo!'}
                     </p>
                   </div>
                 </div>
