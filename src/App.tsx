@@ -13,7 +13,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Bell, Eye, Settings, ShieldAlert, Sparkles, X } from 'lucide-react';
 
 function AppContent() {
-  const { isAdminLoggedIn, currentTheme, notifications, activeTenant } = useApp();
+  const { isAdminLoggedIn, currentTheme, notifications, activeTenant, panelTheme } = useApp();
   const theme = THEMES[currentTheme];
 
   // Real-time toast state for new notification arrivals
@@ -51,8 +51,11 @@ function AppContent() {
     }
   }, [notifications]);
 
+  const panelBg = panelTheme === 'claro' ? 'bg-stone-100 text-stone-900' : panelTheme === 'medio' ? 'bg-zinc-800 text-zinc-100' : 'bg-zinc-950 text-zinc-100';
+  const rootBg = (isAdminLoggedIn && !isPreviewMode) ? panelBg : theme.bg;
+
   return (
-    <div className={`${theme.bg} min-h-screen transition-colors duration-300 relative`}>
+    <div className={`${rootBg} min-h-screen transition-colors duration-300 relative`}>
       
       {/* Global Navbar */}
       <Navbar />
