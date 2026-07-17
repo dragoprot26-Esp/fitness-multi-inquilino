@@ -35,6 +35,8 @@ interface AppContextType {
   // Dynamic Theme
   currentTheme: 'neon-energy' | 'zen-calm' | 'coral-athletics';
   setCurrentTheme: (theme: 'neon-energy' | 'zen-calm' | 'coral-athletics') => void;
+  panelTheme: 'claro' | 'medio' | 'oscuro';
+  setPanelTheme: (t: 'claro' | 'medio' | 'oscuro') => void;
   
   // Actions
   addSession: (session: Omit<ClassSession, 'id' | 'tenantId' | 'currentBookings'>) => void;
@@ -120,6 +122,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [publicCodigo, setPublicCodigo] = useState<string | null>(null);
   // Guardado local a prueba de errores (si el localStorage se llena, la nube es el respaldo real)
   const lsSet = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch (e) { /* cuota llena u otros: se ignora */ } };
+  const [panelTheme, setPanelThemeState] = useState<'claro' | 'medio' | 'oscuro'>(() => {
+    const saved = localStorage.getItem('fit_panel_theme');
+    return (saved === 'claro' || saved === 'medio' || saved === 'oscuro') ? saved : 'oscuro';
+  });
+  const setPanelTheme = (t: 'claro' | 'medio' | 'oscuro') => { setPanelThemeState(t); lsSet('fit_panel_theme', t); };
 
   // Admin login states
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(() => {
@@ -142,6 +149,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     setCurrentTheme(activeTenant.theme);
   }, [activeTenantId]);
+
+  // Modo oscuro por clase: en el panel manda panelTheme; en público, el tema del local
+  useEffect(() => {
+    const dark = isAdminLoggedIn ? (panelTheme !== 'claro') : (currentTheme === 'neon-energy');
+    document.documentElement.classList.toggle('dark', dark);
+  }, [isAdminLoggedIn, panelTheme, currentTheme]);
 
   // Save changes to localStorage
   useEffect(() => {
@@ -735,6 +748,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setAdminLicenseVerified,
         iniciarSesionNube,
         cambiarClave,
+        panelTheme,
+        setPanelTheme,
         currentTheme,
         setCurrentTheme,
         addSession,
