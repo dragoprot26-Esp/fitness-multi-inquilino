@@ -1,0 +1,6 @@
+{
+  "name": "PWA Fitness Multi-Inquilino",
+  "description": "Una PWA multi-inquilino para salones de Zumba, Step y fitness, que permite la gestión de clases, reservas, encargos mensuales, notificaciones de pagos y un panel de administración con login biométrico.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
