@@ -268,7 +268,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
         if (data.classes) setClasses(data.classes as ClassSession[]);
       });
-    }, 15000);
+    }, 8000);
     return () => clearInterval(iv);
   }, [publicCodigo, isAdminLoggedIn]);
 
