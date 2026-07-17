@@ -5,8 +5,9 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { ClassSession, MonthlyPayment, Prospect, MusicTrack } from '../types';
+import { ClassSession, MonthlyPayment, Prospect, MusicTrack, Tenant } from '../types';
 import { THEMES } from '../lib/theme';
+import { comprimirImagen } from '../lib/img';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   DollarSign,
@@ -449,7 +450,7 @@ export default function AdminPanel() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    Array.from(files).forEach(file => {
+    Array.from(files).forEach((file: File) => {
       if (file.size > 15 * 1024 * 1024) {
         alert(`El archivo "${file.name}" supera los 15MB. Podría tardar más en procesarse y guardarse.`);
       }
@@ -606,27 +607,19 @@ export default function AdminPanel() {
     });
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, slotId: string) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, slotId: string) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
-      if (base64) {
-        const updated = slots.map(s => {
-          if (s.id === slotId) {
-            if (s.images.length >= 5) {
-              alert('Máximo de 5 imágenes permitido por cuadradito.');
-              return s;
-            }
-            return { ...s, images: [...s.images, base64] };
-          }
-          return s;
-        });
-        handleUpdateGallerySlots(updated);
+    const base64 = await comprimirImagen(file, 1200, 0.72);
+    if (!base64) { alert('No se pudo procesar esta imagen (formato no soportado o muy grande).'); return; }
+    const updated = slots.map(s => {
+      if (s.id === slotId) {
+        if (s.images.length >= 5) { alert('Máximo de 5 imágenes permitido por cuadradito.'); return s; }
+        return { ...s, images: [...s.images, base64] };
       }
-    };
-    reader.readAsDataURL(file);
+      return s;
+    });
+    handleUpdateGallerySlots(updated);
   };
 
   const handleSaveTheme = (e: React.FormEvent) => {
@@ -1436,18 +1429,11 @@ export default function AdminPanel() {
                         <input 
                           type="file"
                           accept="image/*"
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             const file = e.target.files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onload = (event) => {
-                                const base64 = event.target?.result as string;
-                                if (base64) {
-                                  setEditHeroImage(base64);
-                                }
-                              };
-                              reader.readAsDataURL(file);
-                            }
+                            if (!file) return;
+                            const base64 = await comprimirImagen(file, 1400, 0.72);
+                            if (base64) setEditHeroImage(base64);
                           }}
                           className="hidden"
                         />
@@ -3097,6 +3083,42 @@ export default function AdminPanel() {
             </button>
 
           </form>
+
+          {/* QR de la pagina publica del inquilino */}
+          <div className="bg-white dark:bg-zinc-900 border border-stone-200 dark:border-zinc-800 rounded-3xl p-6 space-y-4 shadow-sm">
+            <div>
+              <h4 className="text-sm font-black uppercase text-stone-800 dark:text-zinc-200 flex items-center space-x-1.5">
+                <span>📱 QR de tu Página Pública</span>
+              </h4>
+              <p className="text-xs text-stone-500">Colgá este QR en el local. Al escanearlo, el cliente entra directo a la página de tu sede.</p>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center gap-5">
+              <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-md shrink-0">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(`${typeof window !== 'undefined' ? window.location.origin : ''}/?codigo=${activeTenant.id}`)}`}
+                  alt="QR de la pagina publica"
+                  className="w-44 h-44 object-contain"
+                />
+              </div>
+              <div className="flex-grow w-full space-y-3">
+                <div className="text-[11px] font-mono break-all bg-stone-100 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 rounded-xl p-3 text-stone-600 dark:text-zinc-400">
+                  {typeof window !== 'undefined' ? window.location.origin : ''}/?codigo={activeTenant.id}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <a
+                    href={`https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(`${typeof window !== 'undefined' ? window.location.origin : ''}/?codigo=${activeTenant.id}`)}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="px-4 py-2 rounded-xl bg-amber-500 text-black text-xs font-bold cursor-pointer hover:scale-105 transition"
+                  >⬇ Descargar QR</a>
+                  <button
+                    type="button"
+                    onClick={() => { const u = `${window.location.origin}/?codigo=${activeTenant.id}`; navigator.clipboard.writeText(u); alert('Link copiado: ' + u); }}
+                    className="px-4 py-2 rounded-xl border border-stone-300 dark:border-zinc-700 text-xs font-bold cursor-pointer hover:bg-stone-100 dark:hover:bg-zinc-800 transition"
+                  >🔗 Copiar link</button>
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Backup Options */}
           <div className="bg-white dark:bg-zinc-900 border border-stone-200 dark:border-zinc-800 rounded-3xl p-6 space-y-4 shadow-sm">

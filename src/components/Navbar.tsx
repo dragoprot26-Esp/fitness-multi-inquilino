@@ -5,7 +5,8 @@
 
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { validarLicencia, asegurarCuentaSeguraDueno } from '../lib/cloud';
+import { validarLicencia, asegurarCuentaSeguraDueno, estaLogueado } from '../lib/cloud';
+import * as biometria from '../lib/biometria';
 import { THEMES } from '../lib/theme';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -84,25 +85,34 @@ export default function Navbar() {
     setTimeout(() => { setSuccess(''); setAdminStep('biometric'); }, 900);
   };
 
-  const handleBiometricLogin = () => {
+  const handleBiometricLogin = async () => {
     setIsScanning(true);
     setError('');
+    const ok = await biometria.registrar(codigoValidado, username.trim() || 'admin', 'admin');
+    setIsScanning(false);
+    setScanComplete(true);
+    setSuccess(ok ? 'Huella / FaceID activada de forma segura' : 'Ingresando...');
     setTimeout(() => {
-      setIsScanning(false);
-      setScanComplete(true);
-      setSuccess('Huella digital / FaceID verificada de forma segura');
-      setTimeout(() => {
-        setIsAdminLoggedIn(true);
-        setShowAdminModal(false);
-        setSuccess('');
-        setScanComplete(false);
-        // Reset steps for next time
-        setAdminStep('license');
-        setLicenseKey('');
-        setUsername('');
-        setPassword('');
-      }, 1200);
-    }, 2000);
+      setIsAdminLoggedIn(true);
+      setShowAdminModal(false);
+      setSuccess('');
+      setScanComplete(false);
+      setAdminStep('license');
+      setLicenseKey('');
+      setUsername('');
+      setPassword('');
+    }, 1200);
+  };
+
+  const handleBiometricQuick = async () => {
+    setError('');
+    const meta = await biometria.desbloquear();
+    if (!meta) { setError('No se pudo verificar la huella/rostro. Entrá con tu clave.'); return; }
+    if (!estaLogueado()) { setError('Por seguridad, ingresá una vez con usuario y contraseña; después la huella entra sola.'); return; }
+    iniciarSesionNube(meta.licenseCode);
+    setIsAdminLoggedIn(true);
+    setShowAdminModal(false);
+    setAdminStep('license'); setLicenseKey(''); setUsername(''); setPassword('');
   };
 
   const handleDirectLogin = () => {
@@ -313,10 +323,15 @@ export default function Navbar() {
                     <p className="text-xs text-stone-400 leading-relaxed">
                       Este software de gimnasio requiere una licencia autorizada por inquilino. Ingrese su clave para continuar.
                     </p>
-                    <p className="text-[10px] text-amber-400/80 mt-2 font-mono flex items-center space-x-1 bg-amber-500/5 p-1 rounded border border-amber-500/10">
+                    <p className="text-[10px] text-stone-500 mt-2 font-mono flex items-center space-x-1">
                       <Lock className="w-3 h-3 flex-shrink-0" />
-                      <span>Licencia para pruebas: <strong className="underline">SUMBA2026</strong></span>
+                      <span>Ingresá la clave que te entregó tu proveedor CyC.</span>
                     </p>
+                    {biometria.hay() && (
+                      <button type="button" onClick={handleBiometricQuick} className="mt-3 w-full py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold text-xs flex items-center justify-center gap-2 hover:bg-emerald-500/20 transition cursor-pointer">
+                        Entrar con Huella / FaceID
+                      </button>
+                    )}
                   </div>
 
                   <div>
