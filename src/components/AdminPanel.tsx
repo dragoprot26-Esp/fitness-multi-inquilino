@@ -86,7 +86,9 @@ export default function AdminPanel() {
     deleteNotification,
     clearNotifications,
     updateSuggestionStatus,
-    replyToSuggestion
+    replyToSuggestion,
+    panelTheme,
+    setPanelTheme
   } = useApp();
 
   const theme = THEMES[currentTheme];
@@ -654,6 +656,18 @@ export default function AdminPanel() {
           <p className="text-xs text-stone-500 font-mono mt-1">
             Gimnasio activo: <strong className="text-stone-800 dark:text-zinc-200">{activeTenant.name}</strong> • Licencia de Software Verificada
           </p>
+        </div>
+        <div className="flex items-center gap-1 mt-3 md:mt-0 bg-stone-100 dark:bg-zinc-900 border border-stone-200 dark:border-zinc-800 rounded-full p-1 self-start">
+          {(['claro', 'medio', 'oscuro'] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setPanelTheme(t)}
+              className={`px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition cursor-pointer ${panelTheme === t ? 'bg-amber-500 text-black' : 'text-stone-500 dark:text-zinc-400 hover:bg-stone-200 dark:hover:bg-zinc-800'}`}
+            >
+              {t === 'claro' ? '☀️ Claro' : t === 'medio' ? '🌗 Medio' : '🌙 Oscuro'}
+            </button>
+          ))}
         </div>
       </div>
 
