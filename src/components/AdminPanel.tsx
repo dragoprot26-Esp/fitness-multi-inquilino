@@ -453,8 +453,9 @@ export default function AdminPanel() {
     if (!files || files.length === 0) return;
 
     Array.from(files).forEach((file: File) => {
-      if (file.size > 15 * 1024 * 1024) {
-        alert(`El archivo "${file.name}" supera los 15MB. Podría tardar más en procesarse y guardarse.`);
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`El archivo "${file.name}" pesa demasiado para guardarlo dentro de la app (máx ~5MB, y aun así puede fallar la sincronización). Mejor pegá un enlace directo .mp3 o un link de YouTube en el campo de URL de arriba.`);
+        return;
       }
 
       const reader = new FileReader();
