@@ -100,7 +100,9 @@ export default function AdminPanel() {
     updateSuggestionStatus,
     replyToSuggestion,
     panelTheme,
-    setPanelTheme
+    setPanelTheme,
+    setCurrentTheme,
+    setActiveTenant
   } = useApp();
 
   const theme = THEMES[currentTheme];
@@ -1420,6 +1422,39 @@ export default function AdminPanel() {
                   <p className="text-xs text-stone-500">
                     Modifica la identidad del centro: sube imágenes de cabecera y configura las fuentes tipográficas globales.
                   </p>
+                </div>
+
+                {/* Estilo de la página pública + Sede (movidos desde la barra superior) */}
+                <div className="bg-stone-50 dark:bg-zinc-950 p-5 rounded-3xl border border-stone-200/60 dark:border-zinc-800/80 space-y-4">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-stone-800 dark:text-zinc-200">✨ Estilo de la Página Pública</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {([
+                      { k: 'neon-energy', label: '🔥 Tono Carbón' },
+                      { k: 'zen-calm', label: '🌿 Tono Natural' },
+                      { k: 'coral-athletics', label: '🧱 Tono Arcilla' },
+                    ] as const).map((op) => (
+                      <button
+                        key={op.k}
+                        type="button"
+                        onClick={() => setCurrentTheme(op.k)}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold border transition cursor-pointer ${currentTheme === op.k ? 'bg-amber-500 text-black border-amber-500' : 'bg-white dark:bg-zinc-900 text-stone-600 dark:text-zinc-300 border-stone-200 dark:border-zinc-800 hover:border-amber-400'}`}
+                      >
+                        {op.label}
+                      </button>
+                    ))}
+                  </div>
+                  {tenants.length > 1 && (
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">Sede activa</label>
+                      <select
+                        value={activeTenant.id}
+                        onChange={(e) => { const t = tenants.find(x => x.id === e.target.value); if (t) setActiveTenant(t); }}
+                        className="w-full bg-white dark:bg-zinc-900 border border-stone-200 dark:border-zinc-800 px-3 py-2 text-xs rounded-xl focus:outline-none text-stone-900 dark:text-zinc-100"
+                      >
+                        {tenants.map((t) => (<option key={t.id} value={t.id}>{t.name}</option>))}
+                      </select>
+                    </div>
+                  )}
                 </div>
 
                 {/* Hero Banner Image Customize Section */}
