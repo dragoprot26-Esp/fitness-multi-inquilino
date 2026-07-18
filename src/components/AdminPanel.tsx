@@ -880,6 +880,18 @@ export default function AdminPanel() {
           </button>
 
           <button
+            onClick={() => setActiveTab('classes')}
+            className={`w-full text-left px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-wider transition-all duration-200 flex items-center space-x-3 cursor-pointer ${
+              activeTab === 'classes'
+                ? 'bg-amber-500 text-black shadow-md font-extrabold'
+                : 'text-stone-600 dark:text-zinc-400 hover:bg-stone-100 dark:hover:bg-zinc-800 hover:text-stone-900 dark:hover:text-white'
+            }`}
+          >
+            <Calendar className="w-4 h-4" />
+            <span>🧩 Servicios</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('gallery')}
             className={`w-full text-left px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-wider transition-all duration-200 flex items-center space-x-3 cursor-pointer ${
               activeTab === 'gallery'
@@ -888,7 +900,7 @@ export default function AdminPanel() {
             }`}
           >
             <Image className="w-4 h-4" />
-            <span>🖼️ Servicios y Galería</span>
+            <span>🖼️ Galería</span>
           </button>
 
           <button
@@ -1170,7 +1182,57 @@ export default function AdminPanel() {
             );
           })()}
 
-          {/* Gallery Tab Content (Servicios y Galería CRUD) */}
+          {/* Servicios (Clases con día/horario) Tab */}
+          {activeTab === 'classes' && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-stone-200 dark:border-zinc-800 pb-4 gap-4">
+                <div>
+                  <h3 className="text-lg font-black uppercase tracking-tight text-stone-900 dark:text-white flex items-center space-x-2">
+                    <span>🧩 Servicios y Clases</span>
+                  </h3>
+                  <p className="text-xs text-stone-500">Definí tus clases con día y horario. Los clientes las ven en la página pública y pueden reservar una <b>clase gratis de prueba</b>.</p>
+                </div>
+                <button
+                  onClick={() => setShowAddClassModal(true)}
+                  className="flex items-center justify-center space-x-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black font-extrabold text-xs uppercase px-4 py-2.5 rounded-xl shadow-md cursor-pointer active:scale-95 transition-all"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Nuevo Servicio</span>
+                </button>
+              </div>
+
+              {tenantClasses.length === 0 ? (
+                <div className="text-center py-12 bg-stone-50 dark:bg-zinc-950 rounded-3xl border border-dashed border-stone-300 dark:border-zinc-800">
+                  <Calendar className="w-12 h-12 text-stone-300 mx-auto mb-3" />
+                  <p className="text-sm font-bold text-stone-500">Todavía no cargaste servicios/clases.</p>
+                  <p className="text-xs text-stone-400 mt-1">Pulsá "Nuevo Servicio" para agregar la primera (con día y horario).</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {tenantClasses.map((c) => (
+                    <div key={c.id} className="bg-stone-50 dark:bg-zinc-950 p-4 rounded-2xl border border-stone-200/60 dark:border-zinc-800/80 flex items-center gap-4">
+                      <img src={c.image} alt={c.name} className="w-16 h-16 rounded-xl object-cover border border-stone-200 dark:border-zinc-800 bg-stone-100 shrink-0" referrerPolicy="no-referrer" />
+                      <div className="flex-grow min-w-0">
+                        <p className="text-sm font-black text-stone-900 dark:text-white truncate">{c.name}</p>
+                        <p className="text-[11px] text-stone-500 truncate">👤 {c.instructor} · {c.duration}</p>
+                        <p className="text-[11px] font-bold text-amber-600 dark:text-amber-500">📅 {c.dayOfWeek} · 🕒 {c.time} hs</p>
+                        <p className="text-[10px] text-stone-400">Cupo {c.maxCapacity} · {activeTenant.currencySymbol || '$'}{c.price}</p>
+                      </div>
+                      <button
+                        onClick={() => { if (window.confirm(`¿Eliminar la clase "${c.name}"?`)) deleteSession(c.id); }}
+                        className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition cursor-pointer shrink-0"
+                        title="Eliminar clase"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Gallery Tab Content (Galería de Fotos CRUD) */}
           {activeTab === 'gallery' && (() => {
             const currentSlots = slots;
 
@@ -1201,10 +1263,10 @@ export default function AdminPanel() {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-stone-200 dark:border-zinc-800 pb-4 gap-4">
                   <div>
                     <h3 className="text-lg font-black uppercase tracking-tight text-stone-900 dark:text-white flex items-center space-x-2">
-                      <span>🖼️ Servicios y Galería de Fotos</span>
+                      <span>🖼️ Galería de Fotos</span>
                     </h3>
                     <p className="text-xs text-stone-500">
-                      Administra los servicios destacados de tu sede. Añade, edita títulos, elimina servicios o sube hasta 5 fotos reales de cada uno.
+                      Administra las galerías de fotos de tu sede. Añade, edita títulos, elimina galerías o subí hasta 5 fotos reales de cada una.
                     </p>
                   </div>
                   <button
@@ -1215,7 +1277,7 @@ export default function AdminPanel() {
                     className="flex items-center justify-center space-x-1.5 bg-gradient-to-r from-stone-900 to-stone-800 hover:from-stone-800 hover:to-stone-700 dark:from-zinc-100 dark:to-zinc-200 dark:hover:from-white dark:hover:to-zinc-100 dark:text-black text-white font-extrabold text-xs uppercase px-4 py-2.5 rounded-xl shadow-md cursor-pointer active:scale-95 transition-all"
                   >
                     <Plus className="w-4 h-4" />
-                    <span>Nuevo Servicio</span>
+                    <span>Nueva Galería</span>
                   </button>
                 </div>
 
@@ -1224,8 +1286,8 @@ export default function AdminPanel() {
                   {currentSlots.length === 0 ? (
                     <div className="md:col-span-2 text-center py-12 bg-stone-50 dark:bg-zinc-950 rounded-3xl border border-dashed border-stone-300 dark:border-zinc-800">
                       <Image className="w-12 h-12 text-stone-300 mx-auto mb-3" />
-                      <p className="text-sm font-bold text-stone-500">No hay servicios creados aún.</p>
-                      <p className="text-xs text-stone-400 mt-1">Pulsa en "Nuevo Servicio" para empezar a construir tu catálogo.</p>
+                      <p className="text-sm font-bold text-stone-500">No hay galerías creadas aún.</p>
+                      <p className="text-xs text-stone-400 mt-1">Pulsá en "Nueva Galería" para empezar a subir tus fotos.</p>
                     </div>
                   ) : (
                     currentSlots.map((slot) => (
@@ -1362,7 +1424,7 @@ export default function AdminPanel() {
                         <form onSubmit={handleCreateService} className="space-y-4">
                           <div className="border-b border-stone-100 dark:border-zinc-800 pb-2 flex items-center justify-between">
                             <h3 className="text-base font-black uppercase font-sans text-stone-900 dark:text-white flex items-center space-x-1.5">
-                              <span>✨ Crear Nuevo Servicio</span>
+                              <span>✨ Crear Nueva Galería</span>
                             </h3>
                             <button 
                               type="button" 
