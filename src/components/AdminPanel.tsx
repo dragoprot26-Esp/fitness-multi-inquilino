@@ -164,6 +164,7 @@ export default function AdminPanel() {
   const [newClassDuration, setNewClassDuration] = useState('50 min');
   const [newClassImage, setNewClassImage] = useState('https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&q=80&w=600');
   const [newClassDays, setNewClassDays] = useState<string[]>([]);
+  const [editingClass, setEditingClass] = useState<ClassSession | null>(null);
   const [newClassHorarios, setNewClassHorarios] = useState<{ desde: string; hasta: string }[]>([{ desde: '19:00', hasta: '20:00' }]);
   const [showAddClassModal, setShowAddClassModal] = useState(false);
 
@@ -370,35 +371,77 @@ export default function AdminPanel() {
     const dias = newClassDays.length ? newClassDays : [newClassDay];
     const franjasRaw = newClassHorarios.filter(h => h.desde);
     const franjas = franjasRaw.length ? franjasRaw : [{ desde: newClassTime, hasta: '' }];
+    const calc = (fr: { desde: string; hasta: string }) => {
+      let dur = newClassDuration;
+      if (fr.desde && fr.hasta) {
+        const [h1, m1] = fr.desde.split(':').map(Number);
+        const [h2, m2] = fr.hasta.split(':').map(Number);
+        const mins = (h2 * 60 + m2) - (h1 * 60 + m1);
+        if (mins > 0) dur = `${mins} min`;
+      }
+      return { rango: fr.hasta ? `${fr.desde} - ${fr.hasta}` : fr.desde, dur };
+    };
 
-    dias.forEach((dia) => {
-      franjas.forEach((fr) => {
-        const rango = fr.hasta ? `${fr.desde} - ${fr.hasta}` : fr.desde;
-        let dur = newClassDuration;
-        if (fr.desde && fr.hasta) {
-          const [h1, m1] = fr.desde.split(':').map(Number);
-          const [h2, m2] = fr.hasta.split(':').map(Number);
-          const mins = (h2 * 60 + m2) - (h1 * 60 + m1);
-          if (mins > 0) dur = `${mins} min`;
-        }
-        addSession({
-          name: newClassName,
-          instructor: newClassInstructor,
-          dayOfWeek: dia,
-          time: rango,
-          maxCapacity: Number(newClassCapacity),
-          price: Number(newClassPrice),
-          duration: dur,
-          image: newClassImage
+    if (editingClass) {
+      const { rango, dur } = calc(franjas[0]);
+      updateSession({
+        ...editingClass,
+        name: newClassName,
+        instructor: newClassInstructor,
+        dayOfWeek: dias[0],
+        time: rango,
+        maxCapacity: Number(newClassCapacity),
+        price: Number(newClassPrice),
+        duration: dur,
+        image: newClassImage
+      });
+    } else {
+      dias.forEach((dia) => {
+        franjas.forEach((fr) => {
+          const { rango, dur } = calc(fr);
+          addSession({
+            name: newClassName,
+            instructor: newClassInstructor,
+            dayOfWeek: dia,
+            time: rango,
+            maxCapacity: Number(newClassCapacity),
+            price: Number(newClassPrice),
+            duration: dur,
+            image: newClassImage
+          });
         });
       });
-    });
+    }
 
     setNewClassName('');
     setNewClassInstructor('');
     setNewClassDays([]);
     setNewClassHorarios([{ desde: '19:00', hasta: '20:00' }]);
+    setEditingClass(null);
     setShowAddClassModal(false);
+  };
+
+  const handleEditClass = (c: ClassSession) => {
+    setEditingClass(c);
+    setNewClassName(c.name);
+    setNewClassInstructor(c.instructor);
+    setNewClassCapacity(c.maxCapacity);
+    setNewClassPrice(c.price);
+    setNewClassImage(c.image);
+    setNewClassDuration(c.duration);
+    setNewClassDays([c.dayOfWeek]);
+    const parts = (c.time || '').split(/\s*-\s*/);
+    setNewClassHorarios([{ desde: (parts[0] || '').trim(), hasta: (parts[1] || '').trim() }]);
+    setShowAddClassModal(true);
+  };
+
+  const abrirNuevaClase = () => {
+    setEditingClass(null);
+    setNewClassName('');
+    setNewClassInstructor('');
+    setNewClassDays([]);
+    setNewClassHorarios([{ desde: '19:00', hasta: '20:00' }]);
+    setShowAddClassModal(true);
   };
 
   const handleCreateCharge = (e: React.FormEvent) => {
@@ -1213,7 +1256,7 @@ export default function AdminPanel() {
                   <p className="text-xs text-stone-500">Definí tus clases con día y horario. Los clientes las ven en la página pública y pueden reservar una <b>clase gratis de prueba</b>.</p>
                 </div>
                 <button
-                  onClick={() => setShowAddClassModal(true)}
+                  onClick={abrirNuevaClase}
                   className="flex items-center justify-center space-x-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black font-extrabold text-xs uppercase px-4 py-2.5 rounded-xl shadow-md cursor-pointer active:scale-95 transition-all"
                 >
                   <Plus className="w-4 h-4" />
@@ -1238,6 +1281,13 @@ export default function AdminPanel() {
                         <p className="text-[11px] font-bold text-amber-600 dark:text-amber-500">📅 {c.dayOfWeek} · 🕒 {c.time} hs</p>
                         <p className="text-[10px] text-stone-400">Cupo {c.maxCapacity} · {activeTenant.currencySymbol || '$'}{c.price}</p>
                       </div>
+                      <button
+                        onClick={() => handleEditClass(c)}
+                        className="p-2 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition cursor-pointer shrink-0"
+                        title="Editar clase"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
                       <button
                         onClick={() => { if (window.confirm(`¿Eliminar la clase "${c.name}"?`)) deleteSession(c.id); }}
                         className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition cursor-pointer shrink-0"
@@ -3362,12 +3412,12 @@ export default function AdminPanel() {
       <AnimatePresence>
         {showAddClassModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowAddClassModal(false)} className="absolute inset-0 bg-black/75 backdrop-blur-md" />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { setShowAddClassModal(false); setEditingClass(null); }} className="absolute inset-0 bg-black/75 backdrop-blur-md" />
             <motion.div initial={{ scale: 0.9, y: 20, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} exit={{ scale: 0.9, y: 20, opacity: 0 }} className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white dark:bg-zinc-900 rounded-3xl p-6 shadow-2xl z-10 text-stone-800 dark:text-white border border-stone-200 dark:border-zinc-800">
               <form onSubmit={handleCreateClass} className="space-y-4">
                 <div className="border-b border-stone-100 dark:border-zinc-800 pb-2 flex items-center justify-between">
-                  <h3 className="text-base font-black uppercase font-sans text-stone-900 dark:text-white">Añadir Nueva Sesión</h3>
-                  <button type="button" onClick={() => setShowAddClassModal(false)} className="text-stone-400 hover:text-stone-600"><XCircle className="w-5 h-5" /></button>
+                  <h3 className="text-base font-black uppercase font-sans text-stone-900 dark:text-white">{editingClass ? 'Editar Sesión' : 'Añadir Nueva Sesión'}</h3>
+                  <button type="button" onClick={() => { setShowAddClassModal(false); setEditingClass(null); }} className="text-stone-400 hover:text-stone-600"><XCircle className="w-5 h-5" /></button>
                 </div>
                 <div className="space-y-3 text-xs">
                   <div>
@@ -3431,7 +3481,7 @@ export default function AdminPanel() {
                     <input type="text" value={newClassImage} onChange={(e) => setNewClassImage(e.target.value)} placeholder="o pegá una URL de imagen" className="w-full bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 px-3 py-2 rounded-xl focus:outline-none text-stone-900 dark:text-zinc-100 font-mono text-[9px]" />
                   </div>
                 </div>
-                <button type="submit" className="w-full bg-stone-900 dark:bg-zinc-100 dark:text-black text-white font-extrabold uppercase py-3 rounded-xl text-xs tracking-wider cursor-pointer">Agregar Clase(s) al Horario</button>
+                <button type="submit" className="w-full bg-stone-900 dark:bg-zinc-100 dark:text-black text-white font-extrabold uppercase py-3 rounded-xl text-xs tracking-wider cursor-pointer">{editingClass ? 'Guardar Cambios' : 'Agregar Clase(s) al Horario'}</button>
               </form>
             </motion.div>
           </div>
