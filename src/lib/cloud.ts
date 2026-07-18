@@ -131,3 +131,9 @@ export async function cambiarPasswordDueno(codigo: string, newPassword: string):
     return { ok: true };
   } catch (e: any) { return { ok: false, msg: e.message || 'Error de red' }; }
 }
+
+// Optimización de egress: solo timestamp para saber si cambió
+export async function zumbVersion(codigo: string): Promise<string> {
+  try { const r = await rpc('zumb_version', { p_codigo: codigo }, false); return typeof r === 'string' ? r : String(r || ''); }
+  catch (e) { return ''; }
+}
