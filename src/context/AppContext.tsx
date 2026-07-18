@@ -13,7 +13,7 @@ import {
   INITIAL_NOTIFICATIONS,
   INITIAL_PROSPECTS
 } from '../data/mockData';
-import { cloudLoad, cloudSave, cambiarPasswordDueno, zumbPublica, zumbAgregarReserva, zumbAgregarProspecto, zumbAgregarSugerencia, CloudData } from '../lib/cloud';
+import { cloudLoad, cloudSave, cambiarPasswordDueno, zumbPublica, zumbAgregarReserva, zumbAgregarProspecto, zumbAgregarSugerencia, zumbVersion, CloudData } from '../lib/cloud';
 
 interface AppContextType {
   activeTenant: Tenant;
@@ -259,40 +259,46 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // PÚBLICO: refresco en vivo (clases/tema/config) sin recargar
   useEffect(() => {
     if (!publicCodigo || isAdminLoggedIn) return;
-    const iv = setInterval(() => {
-      zumbPublica(publicCodigo).then(data => {
-        if (!data) return;
-        if (data.tenants && data.tenants.length) {
-          const ct = data.tenants as Tenant[];
-          setTenants(prev => { const otros = prev.filter(t => !ct.some(c => c.id === t.id)); return [...ct, ...otros]; });
-        }
-        if (data.classes) setClasses(data.classes as ClassSession[]);
-      });
-    }, 8000);
+    let lastVer = '';
+    const iv = setInterval(async () => {
+      const ver = await zumbVersion(publicCodigo);
+      if (!ver || ver === lastVer) return; // nada cambió → no baja imágenes
+      const data = await zumbPublica(publicCodigo);
+      if (!data) return;
+      lastVer = ver;
+      if (data.tenants && data.tenants.length) {
+        const ct = data.tenants as Tenant[];
+        setTenants(prev => { const otros = prev.filter(t => !ct.some(c => c.id === t.id)); return [...ct, ...otros]; });
+      }
+      if (data.classes) setClasses(data.classes as ClassSession[]);
+    }, 30000);
     return () => clearInterval(iv);
   }, [publicCodigo, isAdminLoggedIn]);
 
   // PANEL: poll de reservas/prospectos/sugerencias entrantes (merge por id)
   useEffect(() => {
     if (!cloudCodigo || !isAdminLoggedIn) return;
-    const iv = setInterval(() => {
-      cloudLoad(cloudCodigo).then(data => {
-        if (!data) return;
-        if (data.reservations) setReservations(prev => { const ids = new Set(prev.map(r => r.id)); const nu = (data.reservations as Reservation[]).filter(r => !ids.has(r.id)); return nu.length ? [...prev, ...nu] : prev; });
-        if (data.prospects) setProspects(prev => { const ids = new Set(prev.map(p => p.id)); const nu = (data.prospects as Prospect[]).filter(p => !ids.has(p.id)); return nu.length ? [...prev, ...nu] : prev; });
-        if (data.tenants && data.tenants.length) {
-          const lic = (data.tenants as Tenant[]).find(t => t.id === cloudCodigo);
-          if (lic && (lic as any).suggestions) {
-            setTenants(prev => prev.map(t => {
-              if (t.id !== cloudCodigo) return t;
-              const ids = new Set((t.suggestions || []).map(sg => sg.id));
-              const nu = (lic as any).suggestions.filter((sg: any) => !ids.has(sg.id));
-              return nu.length ? { ...t, suggestions: [...nu, ...(t.suggestions || [])] } : t;
-            }));
-          }
+    let lastVer = '';
+    const iv = setInterval(async () => {
+      const ver = await zumbVersion(cloudCodigo);
+      if (!ver || ver === lastVer) return; // nada cambió → no baja imágenes
+      const data = await cloudLoad(cloudCodigo);
+      if (!data) return;
+      lastVer = ver;
+      if (data.reservations) setReservations(prev => { const ids = new Set(prev.map(r => r.id)); const nu = (data.reservations as Reservation[]).filter(r => !ids.has(r.id)); return nu.length ? [...prev, ...nu] : prev; });
+      if (data.prospects) setProspects(prev => { const ids = new Set(prev.map(p => p.id)); const nu = (data.prospects as Prospect[]).filter(p => !ids.has(p.id)); return nu.length ? [...prev, ...nu] : prev; });
+      if (data.tenants && data.tenants.length) {
+        const lic = (data.tenants as Tenant[]).find(t => t.id === cloudCodigo);
+        if (lic && (lic as any).suggestions) {
+          setTenants(prev => prev.map(t => {
+            if (t.id !== cloudCodigo) return t;
+            const ids = new Set((t.suggestions || []).map(sg => sg.id));
+            const nu = (lic as any).suggestions.filter((sg: any) => !ids.has(sg.id));
+            return nu.length ? { ...t, suggestions: [...nu, ...(t.suggestions || [])] } : t;
+          }));
         }
-      });
-    }, 12000);
+      }
+    }, 30000);
     return () => clearInterval(iv);
   }, [cloudCodigo, isAdminLoggedIn]);
 
