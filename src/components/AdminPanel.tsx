@@ -39,6 +39,7 @@ import {
   Image,
   Palette,
   Upload,
+  Camera,
   Edit2,
   Trash2,
   ArrowUpDown,
@@ -162,6 +163,8 @@ export default function AdminPanel() {
   const [newClassPrice, setNewClassPrice] = useState(8);
   const [newClassDuration, setNewClassDuration] = useState('50 min');
   const [newClassImage, setNewClassImage] = useState('https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&q=80&w=600');
+  const [newClassDays, setNewClassDays] = useState<string[]>([]);
+  const [newClassHorarios, setNewClassHorarios] = useState<{ desde: string; hasta: string }[]>([{ desde: '19:00', hasta: '20:00' }]);
   const [showAddClassModal, setShowAddClassModal] = useState(false);
 
   // New monthly charge form state
@@ -363,21 +366,38 @@ export default function AdminPanel() {
   const handleCreateClass = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newClassName || !newClassInstructor) return;
-    
-    addSession({
-      name: newClassName,
-      instructor: newClassInstructor,
-      dayOfWeek: newClassDay,
-      time: newClassTime,
-      maxCapacity: Number(newClassCapacity),
-      price: Number(newClassPrice),
-      duration: newClassDuration,
-      image: newClassImage
+
+    const dias = newClassDays.length ? newClassDays : [newClassDay];
+    const franjasRaw = newClassHorarios.filter(h => h.desde);
+    const franjas = franjasRaw.length ? franjasRaw : [{ desde: newClassTime, hasta: '' }];
+
+    dias.forEach((dia) => {
+      franjas.forEach((fr) => {
+        const rango = fr.hasta ? `${fr.desde} - ${fr.hasta}` : fr.desde;
+        let dur = newClassDuration;
+        if (fr.desde && fr.hasta) {
+          const [h1, m1] = fr.desde.split(':').map(Number);
+          const [h2, m2] = fr.hasta.split(':').map(Number);
+          const mins = (h2 * 60 + m2) - (h1 * 60 + m1);
+          if (mins > 0) dur = `${mins} min`;
+        }
+        addSession({
+          name: newClassName,
+          instructor: newClassInstructor,
+          dayOfWeek: dia,
+          time: rango,
+          maxCapacity: Number(newClassCapacity),
+          price: Number(newClassPrice),
+          duration: dur,
+          image: newClassImage
+        });
+      });
     });
 
-    // Reset Form
     setNewClassName('');
     setNewClassInstructor('');
+    setNewClassDays([]);
+    setNewClassHorarios([{ desde: '19:00', hasta: '20:00' }]);
     setShowAddClassModal(false);
   };
 
@@ -3342,134 +3362,76 @@ export default function AdminPanel() {
       <AnimatePresence>
         {showAddClassModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowAddClassModal(false)}
-              className="absolute inset-0 bg-black/75 backdrop-blur-md"
-            />
-
-            <motion.div
-              initial={{ scale: 0.9, y: 20, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.9, y: 20, opacity: 0 }}
-              className="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-3xl p-6 shadow-2xl z-10 text-stone-800 dark:text-white border border-stone-200 dark:border-zinc-800"
-            >
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowAddClassModal(false)} className="absolute inset-0 bg-black/75 backdrop-blur-md" />
+            <motion.div initial={{ scale: 0.9, y: 20, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} exit={{ scale: 0.9, y: 20, opacity: 0 }} className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white dark:bg-zinc-900 rounded-3xl p-6 shadow-2xl z-10 text-stone-800 dark:text-white border border-stone-200 dark:border-zinc-800">
               <form onSubmit={handleCreateClass} className="space-y-4">
                 <div className="border-b border-stone-100 dark:border-zinc-800 pb-2 flex items-center justify-between">
                   <h3 className="text-base font-black uppercase font-sans text-stone-900 dark:text-white">Añadir Nueva Sesión</h3>
-                  <button type="button" onClick={() => setShowAddClassModal(false)} className="text-stone-400 hover:text-stone-600">
-                    <XCircle className="w-5 h-5" />
-                  </button>
+                  <button type="button" onClick={() => setShowAddClassModal(false)} className="text-stone-400 hover:text-stone-600"><XCircle className="w-5 h-5" /></button>
                 </div>
-
                 <div className="space-y-3 text-xs">
                   <div>
                     <label className="block font-bold mb-1">Nombre de la Clase</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ej. Zumba Power Latino"
-                      value={newClassName}
-                      onChange={(e) => setNewClassName(e.target.value)}
-                      className="w-full bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 px-3 py-2 rounded-xl focus:outline-none text-stone-900 dark:text-zinc-100"
-                    />
+                    <input type="text" required placeholder="Ej. Zumba Power Latino" value={newClassName} onChange={(e) => setNewClassName(e.target.value)} className="w-full bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 px-3 py-2 rounded-xl focus:outline-none text-stone-900 dark:text-zinc-100" />
                   </div>
-
+                  <div>
+                    <label className="block font-bold mb-1">Instructor</label>
+                    <input type="text" required placeholder="Ej. Yanis M." value={newClassInstructor} onChange={(e) => setNewClassInstructor(e.target.value)} className="w-full bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 px-3 py-2 rounded-xl focus:outline-none text-stone-900 dark:text-zinc-100" />
+                  </div>
+                  <div>
+                    <label className="block font-bold mb-1">Días de la semana (marcá los que quieras)</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[['Lunes','Lun'],['Martes','Mar'],['Miércoles','Mié'],['Jueves','Jue'],['Viernes','Vie'],['Sábado','Sáb'],['Domingo','Dom']].map(([full, ab]) => {
+                        const on = newClassDays.includes(full);
+                        return (
+                          <button key={full} type="button" onClick={() => setNewClassDays(prev => prev.includes(full) ? prev.filter(d => d !== full) : [...prev, full])} className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold border transition cursor-pointer ${on ? 'bg-amber-500 text-black border-amber-500' : 'bg-stone-50 dark:bg-zinc-950 text-stone-500 dark:text-zinc-400 border-stone-200 dark:border-zinc-800'}`}>{ab}</button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block font-bold mb-1">Horarios (Desde – Hasta)</label>
+                    <div className="space-y-2">
+                      {newClassHorarios.map((h, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <input type="time" value={h.desde} onChange={(e) => setNewClassHorarios(prev => prev.map((x, j) => j === i ? { ...x, desde: e.target.value } : x))} className="flex-1 bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 px-2 py-2 rounded-xl focus:outline-none text-stone-900 dark:text-zinc-100" />
+                          <span className="text-stone-400">a</span>
+                          <input type="time" value={h.hasta} onChange={(e) => setNewClassHorarios(prev => prev.map((x, j) => j === i ? { ...x, hasta: e.target.value } : x))} className="flex-1 bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 px-2 py-2 rounded-xl focus:outline-none text-stone-900 dark:text-zinc-100" />
+                          {newClassHorarios.length > 1 && (
+                            <button type="button" onClick={() => setNewClassHorarios(prev => prev.filter((_, j) => j !== i))} className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition cursor-pointer" title="Quitar horario"><Trash2 className="w-3.5 h-3.5" /></button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <button type="button" onClick={() => setNewClassHorarios(prev => [...prev, { desde: '', hasta: '' }])} className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-500 cursor-pointer hover:underline"><Plus className="w-3.5 h-3.5" /> Agregar horario (se repite)</button>
+                  </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block font-bold mb-1">Instructor</label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="Ej. Yanis M."
-                        value={newClassInstructor}
-                        onChange={(e) => setNewClassInstructor(e.target.value)}
-                        className="w-full bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 px-3 py-2 rounded-xl focus:outline-none text-stone-900 dark:text-zinc-100"
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-bold mb-1">Día de la Semana</label>
-                      <select
-                        value={newClassDay}
-                        onChange={(e) => setNewClassDay(e.target.value)}
-                        className="w-full bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 px-3 py-2 rounded-xl focus:outline-none text-stone-900 dark:text-zinc-100"
-                      >
-                        <option>Lunes</option>
-                        <option>Martes</option>
-                        <option>Miércoles</option>
-                        <option>Jueves</option>
-                        <option>Viernes</option>
-                        <option>Sábado</option>
-                        <option>Domingo</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2">
-                    <div>
-                      <label className="block font-bold mb-1">Hora inicio</label>
-                      <input
-                        type="text"
-                        required
-                        value={newClassTime}
-                        onChange={(e) => setNewClassTime(e.target.value)}
-                        className="w-full bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 px-3 py-2 rounded-xl focus:outline-none text-stone-900 dark:text-zinc-100"
-                      />
-                    </div>
-                    <div>
                       <label className="block font-bold mb-1">Aforo Máx.</label>
-                      <input
-                        type="number"
-                        required
-                        value={newClassCapacity}
-                        onChange={(e) => setNewClassCapacity(Number(e.target.value))}
-                        className="w-full bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 px-3 py-2 rounded-xl focus:outline-none text-stone-900 dark:text-zinc-100"
-                      />
+                      <input type="number" required value={newClassCapacity} onChange={(e) => setNewClassCapacity(Number(e.target.value))} className="w-full bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 px-3 py-2 rounded-xl focus:outline-none text-stone-900 dark:text-zinc-100" />
                     </div>
                     <div>
                       <label className="block font-bold mb-1">Precio ({activeTenant.currencySymbol || '€'})</label>
-                      <input
-                        type="number"
-                        required
-                        value={newClassPrice}
-                        onChange={(e) => setNewClassPrice(Number(e.target.value))}
-                        className="w-full bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 px-3 py-2 rounded-xl focus:outline-none text-stone-900 dark:text-zinc-100"
-                      />
+                      <input type="number" required value={newClassPrice} onChange={(e) => setNewClassPrice(Number(e.target.value))} className="w-full bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 px-3 py-2 rounded-xl focus:outline-none text-stone-900 dark:text-zinc-100" />
                     </div>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block font-bold mb-1">Duración (min)</label>
-                      <input
-                        type="text"
-                        required
-                        value={newClassDuration}
-                        onChange={(e) => setNewClassDuration(e.target.value)}
-                        className="w-full bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 px-3 py-2 rounded-xl focus:outline-none text-stone-900 dark:text-zinc-100"
-                      />
+                  <div>
+                    <label className="block font-bold mb-1">Imagen de la clase</label>
+                    {newClassImage && (<img src={newClassImage} alt="" className="w-full h-24 object-cover rounded-xl border border-stone-200 dark:border-zinc-800 mb-2" referrerPolicy="no-referrer" />)}
+                    <div className="flex gap-2 mb-2">
+                      <label className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl bg-stone-100 dark:bg-zinc-800 border border-stone-200 dark:border-zinc-700 text-[11px] font-bold cursor-pointer hover:bg-stone-200 dark:hover:bg-zinc-700 transition">
+                        <Upload className="w-3.5 h-3.5" /> Subir PC/Móvil
+                        <input type="file" accept="image/*" className="hidden" onChange={async (e) => { const file = e.target.files?.[0]; if (!file) return; const r = await comprimirImagen(file, 1000, 0.72); if (r) setNewClassImage(r); else alert('No se pudo procesar la imagen.'); }} />
+                      </label>
+                      <label className="sm:hidden flex-1 flex items-center justify-center gap-1 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-500 text-[11px] font-bold cursor-pointer hover:bg-amber-500/20 transition">
+                        <Camera className="w-3.5 h-3.5" /> Tomar foto
+                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={async (e) => { const file = e.target.files?.[0]; if (!file) return; const r = await comprimirImagen(file, 1000, 0.72); if (r) setNewClassImage(r); else alert('No se pudo procesar la imagen.'); }} />
+                      </label>
                     </div>
-                    <div>
-                      <label className="block font-bold mb-1">URL Imagen</label>
-                      <input
-                        type="text"
-                        required
-                        value={newClassImage}
-                        onChange={(e) => setNewClassImage(e.target.value)}
-                        className="w-full bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 px-3 py-2 rounded-xl focus:outline-none text-stone-900 dark:text-zinc-100 font-mono text-[9px]"
-                      />
-                    </div>
+                    <input type="text" value={newClassImage} onChange={(e) => setNewClassImage(e.target.value)} placeholder="o pegá una URL de imagen" className="w-full bg-stone-50 dark:bg-zinc-950 border border-stone-200 dark:border-zinc-800 px-3 py-2 rounded-xl focus:outline-none text-stone-900 dark:text-zinc-100 font-mono text-[9px]" />
                   </div>
                 </div>
-
-                <button
-                  type="submit"
-                  className="w-full bg-stone-900 dark:bg-zinc-100 dark:text-black text-white font-extrabold uppercase py-3 rounded-xl text-xs tracking-wider cursor-pointer"
-                >
-                  Agregar Clase al Horario
-                </button>
+                <button type="submit" className="w-full bg-stone-900 dark:bg-zinc-100 dark:text-black text-white font-extrabold uppercase py-3 rounded-xl text-xs tracking-wider cursor-pointer">Agregar Clase(s) al Horario</button>
               </form>
             </motion.div>
           </div>
