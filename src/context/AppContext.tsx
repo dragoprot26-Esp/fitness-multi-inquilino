@@ -27,6 +27,8 @@ interface AppContextType {
   prospects: Prospect[];
   isAdminLoggedIn: boolean;
   setIsAdminLoggedIn: (b: boolean) => void;
+  bloqueada: boolean;
+  publicCodigo: string | null;
   adminLicenseVerified: boolean;
   setAdminLicenseVerified: (b: boolean) => void;
   iniciarSesionNube: (codigo: string) => void;
@@ -120,6 +122,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [cloudCodigo, setCloudCodigo] = useState<string | null>(null);
   const [publicCodigo, setPublicCodigo] = useState<string | null>(null);
+  const [bloqueada, setBloqueada] = useState<boolean>(false);
   // Guardado local a prueba de errores (si el localStorage se llena, la nube es el respaldo real)
   const lsSet = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch (e) { /* cuota llena u otros: se ignora */ } };
   const [panelTheme, setPanelThemeState] = useState<'claro' | 'medio' | 'oscuro'>(() => {
@@ -247,6 +250,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsAdminLoggedIn(false);
     zumbPublica(codigo).then(data => {
       if (!data) return;
+      if ((data as any).bloqueada) { setBloqueada(true); return; }  // kill switch
+      setBloqueada(false);
       if (data.tenants && data.tenants.length) {
         const ct = data.tenants as Tenant[];
         setTenants(prev => { const otros = prev.filter(t => !ct.some(c => c.id === t.id)); return [...ct, ...otros]; });
@@ -266,6 +271,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const data = await zumbPublica(publicCodigo);
       if (!data) return;
       lastVer = ver;
+      if ((data as any).bloqueada) { setBloqueada(true); return; }  // kill switch
+      setBloqueada(false);
       if (data.tenants && data.tenants.length) {
         const ct = data.tenants as Tenant[];
         setTenants(prev => { const otros = prev.filter(t => !ct.some(c => c.id === t.id)); return [...ct, ...otros]; });
@@ -749,6 +756,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         notifications,
         prospects,
         isAdminLoggedIn,
+        bloqueada,
+        publicCodigo,
         setIsAdminLoggedIn,
         adminLicenseVerified,
         setAdminLicenseVerified,
